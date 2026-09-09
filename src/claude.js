@@ -162,6 +162,10 @@ function normalizeUsage(body) {
     }
   }
 
+  // A reset time already in the past means the window has lapsed (no active window).
+  const now = Date.now();
+  for (const w of windows) w.ended = !!w.resetsAt && w.resetsAt < now;
+
   let extra = null;
   const x = body.extra_usage;
   if (x?.is_enabled) {

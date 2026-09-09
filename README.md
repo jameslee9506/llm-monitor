@@ -1,23 +1,65 @@
 # llm-monitor (`llmon`)
 
-A one-shot terminal dashboard for every Claude Code / Codex account registered on your machine — usage, rate limits, plan, and auth expiry, checked in parallel with a single command.
+A one-shot terminal dashboard for every Claude Code / Codex account registered on your machine — usage, rate limits, plan, and auth expiry, checked in parallel with a single command. Claude accounts are laid out in three lanes by where their 5-hour session window stands, so the account to use next is obvious at a glance.
 
 ```
-llmon · 4 accounts (2 claude · 2 codex) · 08/04 09:15 · 0.6s
+llmon · 5 accounts (4 claude · 1 codex) · 09/09 11:41 · 0.6s
 
-╭─ CLAUDE · work ─────────────────────────╮  ╭─ CODEX · work ──────────────────────────╮
-│ alice@example.com               Max 20x │  │ alice@example.com           ChatGPT Pro │
-│ ✓ auth ok · login to 08/30 (in 25d 19h) │  │ ✓ auth ok · token to 08/08 (in 4d 10h)  │
-│ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │  │ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │
-│ Session   █░░░░░░░░░░░   7%  resets 4h  │  │ Weekly    ███░░░░░░░░  24%  resets 4d   │
-│ Weekly    ██████░░░░░░  43%  resets 3d  │  │ last activity 9h ago (08/04 00:06)      │
-│ Wk Opus   ███████████░  77%  resets 3d  │  ╰─────────────────────────────────────────╯
-╰─────────────────────────────────────────╯
+── ◔ RESET SOON · 1 · resets within 1h ─────────────────────────────────────────────────────────
+╭─ CLAUDE · work ─────────────────────────────╮
+│ alice@example.com                   Max 20x │
+│ ✓ auth ok · login to 10/05 (in 25d 19h)     │
+│ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │
+│ Session   ██████░░░░░░░░  46%  resets 18m   │
+│ Weekly    ██████░░░░░░░░  43%  resets 3d 2h │
+│ Wk Opus   ███████████░░░  77%  resets 3d 2h │
+╰─────────────────────────────────────────────╯
+
+── ◑ MID-WINDOW · 1 · resets in 1–4h ───────────────────────────────────────────────────────────
+╭─ CLAUDE · personal ─────────────────────────╮
+│ alice@home.example                  Max 20x │
+│ ✓ auth ok · login to 10/19 (in 40d)         │
+│ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │
+│ Session   ██░░░░░░░░░░░░  12%  2h 30m       │
+│ Weekly    ███░░░░░░░░░░░  21%  resets 5d 6h │
+╰─────────────────────────────────────────────╯
+
+── ● FRESH · 2 · just started or idle ──────────────────────────────────────────────────────────
+╭─ CLAUDE · default ──────────────────────────╮  ╭─ CLAUDE · research ─────────────────────────╮
+│ me@example.com                      Max 20x │  │ alice@lab.example                   Max 20x │
+│ ✓ auth ok · login to 09/21 (in 12d)         │  │ ✓ auth ok · login to 10/31 (in 52d)         │
+│ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │  │ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │
+│ Session   ░░░░░░░░░░░░░░   3%  4h 50m       │  │ Session   ░░░░░░░░░░░░░░   0%  idle         │
+│ Weekly    ████░░░░░░░░░░  30%  resets 2d 4h │  │ Weekly    █░░░░░░░░░░░░░   8%  resets 6d 1h │
+╰─────────────────────────────────────────────╯  ╰─────────────────────────────────────────────╯
+
+── CODEX · 1 ───────────────────────────────────────────────────────────────────────────────────
+╭─ CODEX · work ──────────────────────────────╮
+│ alice@example.com               ChatGPT Pro │
+│ ✓ auth ok · token to 09/13 (in 4d 10h)      │
+│ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │
+│ Weekly    ███░░░░░░░░░░░  24%  resets 4d 3h │
+│ last activity 9h 20m ago (09/09 02:21)      │
+╰─────────────────────────────────────────────╯
 
 ! claude/work: Wk Opus at 77%
 ```
 
 Not a live monitor — it runs once, fans out over all accounts concurrently, prints, and exits.
+
+## Lanes (Claude)
+
+Claude Code's session limit is a rolling 5-hour window: it starts on your first message and resets 5 hours later. `llmon` puts each Claude account in one of three lanes by how much of that window is left:
+
+| Lane | Time until the session window resets |
+|---|---|
+| `◔ RESET SOON` | 1h or less — a fresh window is around the corner |
+| `◑ MID-WINDOW` | between 1h and 4h |
+| `● FRESH` | 4h or more (the window started less than an hour ago), or **idle** — no active window at all (0% used, no reset time); it starts on use |
+
+All three lanes are always printed, so an empty `RESET SOON` lane is information too. Within a lane, accounts are ordered by time-to-reset (soonest first, idle last). Claude accounts whose usage couldn't be fetched (not logged in, network error) trail in a `NO DATA` group. `--json` carries the same classification per account as `"lane"`: `"soon"`, `"mid"`, `"fresh"`, or `null`.
+
+Codex accounts are not laned — their rate-limit data comes from session logs rather than a live endpoint, so a phase would only be as fresh as the last session — and are listed after the Claude lanes under their own header.
 
 ## Account discovery
 
@@ -35,10 +77,12 @@ Matching directories that aren't accounts (e.g. a browser profile named `~/.clau
 ## Usage
 
 ```sh
-llmon                 # all accounts, two-column dashboard
-llmon claude          # filter by provider
+llmon                 # all accounts: claude lanes, then codex
+llmon -c              # claude only (same as `llmon claude`)
+llmon --codex         # codex only
 llmon work personal   # filter by label substring (multiple = OR)
-llmon --json          # machine-readable output for scripts
+llmon -c work         # options and filters combine
+llmon --json          # machine-readable output for scripts (includes "lane")
 llmon -1              # single-column layout (auto below 96 columns)
 llmon --no-refresh    # strictly read-only: never refresh tokens
 llmon --no-color
@@ -47,7 +91,7 @@ llmon -t 5            # network timeout in seconds (default 10)
 
 ## How it works
 
-**Claude** — reads the OAuth credential from the macOS Keychain (service `Claude Code-credentials-<first 8 hex of sha256(configDir)>`; the default dir uses the bare name), falling back to `<dir>/.credentials.json` on other platforms. Usage comes from `api.anthropic.com/api/oauth/usage` — the same endpoint the `/usage` screen in Claude Code calls — giving session / weekly / per-model weekly windows with reset times.
+**Claude** — reads the OAuth credential from the macOS Keychain (service `Claude Code-credentials-<first 8 hex of sha256(configDir)>`; the default dir uses the bare name), falling back to `<dir>/.credentials.json` on other platforms. Usage comes from `api.anthropic.com/api/oauth/usage` — the same endpoint the `/usage` screen in Claude Code calls — giving session / weekly / per-model weekly windows with reset times. The **Session** row is what drives the lanes; a window whose reset time has already passed shows `window ended`, and a 0% window with no reset time shows `idle — starts on use`.
 
 - Plan comes from `rateLimitTier` (e.g. `default_claude_max_20x` → `Max 20x`).
 - Auth expiry: `refreshTokenExpiresAt` is the re-login deadline shown as `login to …`; the short-lived access token normally renews itself.
