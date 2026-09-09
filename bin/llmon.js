@@ -3,10 +3,10 @@ import { discover } from '../src/discover.js';
 import { checkClaude } from '../src/claude.js';
 import { checkCodex } from '../src/codex.js';
 import { render } from '../src/render.js';
-import { laneOf, laneRank, sessionLeft } from '../src/lanes.js';
+import { laneOf, laneRank, weeklyLeft } from '../src/lanes.js';
 import { state } from '../src/util.js';
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 const HELP = `llmon ${VERSION} — one-shot dashboard for local Claude Code & Codex accounts
 
 Scans ~/.claude(-*) and ~/.codex(-*) config homes, checks all accounts in
@@ -14,10 +14,10 @@ parallel: usage / rate limits, plan, auth expiry & refresh dates. Expired
 Claude access tokens are auto-refreshed (standard OAuth refresh grant) and
 saved back where Claude Code keeps them.
 
-Claude accounts are shown in three lanes by their 5-hour session window:
-  ◔ RESET SOON   resets within 1h
-  ◑ MID-WINDOW   resets in 1–4h
-  ● FRESH        window started <1h ago, or idle (no active window)
+Claude accounts are shown in three lanes by their 7-day weekly window:
+  ◔ RESET SOON   weekly resets within 1d
+  ◑ MID-WEEK     weekly resets in 1–5d
+  ● FRESH        weekly resets in 5d+ (week started <2d ago), or idle
 
 Usage: llmon [filters...] [options]
 
@@ -121,7 +121,7 @@ async function main() {
   const elapsedMs = Date.now() - t0;
   stop();
 
-  // Lane = phase of the Claude session window (soon / mid / fresh; null for codex or no data).
+  // Lane = phase of the Claude weekly window (soon / mid / fresh; null for codex or no data).
   const now = Date.now();
   for (const r of results) r.lane = laneOf(r, now);
 
@@ -133,7 +133,7 @@ async function main() {
     (a, b) =>
       cmp(order[a.provider], order[b.provider]) ||
       cmp(laneRank(a.lane), laneRank(b.lane)) ||
-      cmp(sessionLeft(a, now) ?? Infinity, sessionLeft(b, now) ?? Infinity) ||
+      cmp(weeklyLeft(a, now) ?? Infinity, weeklyLeft(b, now) ?? Infinity) ||
       lbl(a).localeCompare(lbl(b))
   );
 

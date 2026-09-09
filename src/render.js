@@ -168,7 +168,7 @@ function alerts(results) {
   return out;
 }
 
-// Section rule spanning the grid, e.g. "── ◔ RESET SOON · 3 · resets within 1h ─────".
+// Section rule spanning the grid, e.g. "── ◔ RESET SOON · 3 · weekly resets within 1d ─────".
 // The subtitle is dropped when the grid is too narrow for it.
 function bandHeader({ icon, name, sub, color }, count, width) {
   const text = (withSub) =>
@@ -213,7 +213,7 @@ export function render(results, { termW, oneCol, skipped, elapsedMs }) {
   const cards = (list) => grid(list.map((a) => cardLines(a, cardW)), cols, cardW);
 
   if (claude.length) {
-    // Claude cards sit in lanes by session-window phase (see lanes.js). All three
+    // Claude cards sit in lanes by weekly-window phase (see lanes.js). All three
     // lanes are always printed — an empty RESET SOON lane is information too.
     const laneId = (a) => (a.lane === undefined ? laneOf(a) : a.lane);
     const groups = LANES.map((L) => ({ ...L, color: LANE_COLOR[L.id], items: claude.filter((a) => laneId(a) === L.id) }));
