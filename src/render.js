@@ -2,13 +2,14 @@ import {
   bold, dim, red, green, yellow, fg,
   padE, padS, truncW, visWidth, relDur, fmtDT, fmtD, fmtT,
 } from './util.js';
-import { LANES, NO_DATA, laneOf } from './lanes.js';
 
 const PROV = {
   claude: { name: 'CLAUDE', color: fg(208) },
   codex: { name: 'CODEX', color: fg(42) },
 };
-const LANE_COLOR = { soon: yellow, mid: fg(75), fresh: green };
+const AUTH_WARNING_MS = 3 * 24 * 60 * 60 * 1000;
+const CARD_GAP = 2;
+const MIN_GRID_CARD_W = 47;
 
 const LBLW = 10;
 const BARW = 14;
@@ -47,29 +48,23 @@ function authRow(a, iw) {
   const parts = [];
 
   if (a.provider === 'claude') {
-    parts.push(A.stale ? yellow('! token stale') : green('✓ auth ok'));
+    if (A.stale) parts.push(yellow('! token stale'));
     const lx = A.loginExpiresAt;
-    if (lx) {
+    if (lx && lx - now <= AUTH_WARNING_MS) {
       parts.push(
-        lx < now
-          ? red(`login expired ${fmtD(lx)} — re-login`)
-          : `login to ${fmtD(lx)} ${dim(`(in ${relDur(lx - now)})`)}`
+        lx <= now
+          ? red('! login expired — re-login')
+          : yellow(`! re-login in ${relDur(lx - now)}`)
       );
-    }
-    if (A.refreshed) parts.push(dim('auto-refreshed'));
-    else if (!A.stale && A.accessExpiresAt && A.accessExpiresAt > now) {
-      parts.push(dim(`token ~${fmtT(A.accessExpiresAt)}`));
     }
   } else {
     const ax = A.accessExpiresAt;
-    if (A.stale) {
-      parts.push(yellow(`! token expired ${fmtD(ax)} (${relDur(now - ax)} ago)`));
+    if (A.stale || (ax && ax <= now)) {
+      parts.push(yellow('! token expired'));
       parts.push(dim('renews on next run'));
-    } else {
-      parts.push(green('✓ auth ok'));
-      if (ax) parts.push(`token to ${fmtD(ax)} ${dim(`(in ${relDur(ax - now)})`)}`);
+    } else if (ax && ax - now <= AUTH_WARNING_MS) {
+      parts.push(yellow(`! token expires in ${relDur(ax - now)}`));
     }
-    if (A.lastRefreshAt) parts.push(dim(`refreshed ${relDur(now - A.lastRefreshAt)} ago`));
   }
   return fitParts(parts, iw);
 }
@@ -105,13 +100,11 @@ function cardLines(a, cardW) {
   const bd = (s) => dim(P.color(s));
   const rows = [];
 
-  // email + plan
-  const planPlain = a.plan || '—';
-  const plan = a.plan ? P.color(bold(planPlain)) : dim(planPlain);
-  const emailPlain = truncW(a.email || '(unknown account)', iw - visWidth(planPlain) - 1);
-  rows.push(padE(a.email ? emailPlain : dim(emailPlain), iw - visWidth(planPlain)) + plan);
+  const email = truncW(a.email || '(unknown account)', iw);
+  rows.push(a.email ? email : dim(email));
 
-  rows.push(authRow(a, iw));
+  const auth = authRow(a, iw);
+  if (auth) rows.push(auth);
   rows.push('┈'.repeat(iw));
 
   if (a.error) {
@@ -147,17 +140,20 @@ function alerts(results) {
   for (const a of results) {
     const id = `${a.provider}/${a.label}`;
     if (a.error) out.push(red(`✗ ${id}: ${a.error}`));
-    if (a.auth.stale) {
-      out.push(
-        a.provider === 'claude'
-          ? yellow(`! ${id}: ${a.notes[0] || 'token stale'}`)
-          : yellow(`! ${id}: token expired ${relDur(now - a.auth.accessExpiresAt)} ago — renews on next codex run`)
-      );
-    }
-    if (a.provider === 'claude' && a.auth.loginExpiresAt) {
-      const left = a.auth.loginExpiresAt - now;
-      if (left < 0) out.push(red(`✗ ${id}: login expired — run claude auth login`));
-      else if (left < 7 * 86400000) out.push(yellow(`! ${id}: re-login needed within ${relDur(left)}`));
+    if (a.provider === 'claude') {
+      if (a.auth.stale) out.push(yellow(`! ${id}: ${a.notes[0] || 'token stale'}`));
+      if (a.auth.loginExpiresAt) {
+        const left = a.auth.loginExpiresAt - now;
+        if (left <= 0) out.push(red(`✗ ${id}: login expired — run claude auth login`));
+        else if (left <= AUTH_WARNING_MS) out.push(yellow(`! ${id}: re-login needed within ${relDur(left)}`));
+      }
+    } else {
+      const ax = a.auth.accessExpiresAt;
+      if (a.auth.stale || (ax && ax <= now)) {
+        out.push(yellow(`! ${id}: token expired — renews on next codex run`));
+      } else if (ax && ax - now <= AUTH_WARNING_MS) {
+        out.push(yellow(`! ${id}: token expires in ${relDur(ax - now)} — renews on next codex run`));
+      }
     }
     for (const w of a.usage?.windows ?? []) {
       if (w.ended) continue;
@@ -168,18 +164,6 @@ function alerts(results) {
   return out;
 }
 
-// Section rule spanning the grid, e.g. "── ◔ RESET SOON · 3 · weekly resets within 1d ─────".
-// The subtitle is dropped when the grid is too narrow for it.
-function bandHeader({ icon, name, sub, color }, count, width) {
-  const text = (withSub) =>
-    ' ' + (icon ? color(icon) + ' ' : '') + color(bold(name)) + ' ' +
-    dim(`· ${count}${withSub && sub ? ` · ${sub}` : ''}`) + ' ';
-  let t = text(true);
-  if (visWidth(t) > width - 4) t = text(false);
-  const rule = (n) => dim(color('─'.repeat(Math.max(0, n))));
-  return rule(2) + t + rule(width - 2 - visWidth(t));
-}
-
 // Lay cards out left-to-right, `cols` per row; rows are padded to equal height.
 function grid(cards, cols, cardW) {
   const out = [];
@@ -187,18 +171,17 @@ function grid(cards, cols, cardW) {
     const row = cards.slice(i, i + cols);
     const h = Math.max(...row.map((c) => c.length));
     for (let l = 0; l < h; l++) {
-      out.push(row.map((c) => c[l] ?? ' '.repeat(cardW)).join('  ').replace(/\s+$/, ''));
+      out.push(row.map((c) => c[l] ?? ' '.repeat(cardW)).join(' '.repeat(CARD_GAP)).replace(/\s+$/, ''));
     }
   }
   return out;
 }
 
 export function render(results, { termW, oneCol, skipped, elapsedMs }) {
-  const cols = oneCol || termW < 96 ? 1 : 2;
-  let cardW = cols === 2 ? Math.min(Math.floor((termW - 2) / 2), 62) : Math.min(termW, 66);
+  // Keep each card at least 47 characters wide: 2 columns at 96, 3 at 145.
+  const cols = oneCol ? 1 : Math.max(1, Math.min(3, Math.floor((termW + CARD_GAP) / (MIN_GRID_CARD_W + CARD_GAP))));
+  let cardW = Math.min(Math.floor((termW - (cols - 1) * CARD_GAP) / cols), cols === 1 ? 66 : 62);
   cardW = Math.max(cardW, 44);
-  const width = cols * cardW + (cols - 1) * 2;
-
   const claude = results.filter((a) => a.provider === 'claude');
   const codex = results.filter((a) => a.provider === 'codex');
   const n = results.length;
@@ -210,26 +193,8 @@ export function render(results, { termW, oneCol, skipped, elapsedMs }) {
   out.push(bold('llmon') + dim(' · ') + count + dim(` · ${fmtDT(Date.now())} · ${(elapsedMs / 1000).toFixed(1)}s`));
   out.push('');
 
-  const cards = (list) => grid(list.map((a) => cardLines(a, cardW)), cols, cardW);
-
-  if (claude.length) {
-    // Claude cards sit in lanes by weekly-window phase (see lanes.js). All three
-    // lanes are always printed — an empty RESET SOON lane is information too.
-    const laneId = (a) => (a.lane === undefined ? laneOf(a) : a.lane);
-    const groups = LANES.map((L) => ({ ...L, color: LANE_COLOR[L.id], items: claude.filter((a) => laneId(a) === L.id) }));
-    const nodata = claude.filter((a) => laneId(a) === null);
-    if (nodata.length) groups.push({ ...NO_DATA, color: red, items: nodata });
-    for (const g of groups) {
-      out.push(bandHeader(g, g.items.length, width));
-      if (g.items.length) out.push(...cards(g.items));
-      out.push('');
-    }
-  }
-  if (codex.length) {
-    if (claude.length) out.push(bandHeader({ name: PROV.codex.name, color: PROV.codex.color }, codex.length, width));
-    out.push(...cards(codex));
-    out.push('');
-  }
+  out.push(...grid(results.map((a) => cardLines(a, cardW)), cols, cardW));
+  out.push('');
 
   const al = alerts(results);
   if (al.length) out.push(...al);

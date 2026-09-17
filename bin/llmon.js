@@ -3,21 +3,19 @@ import { discover } from '../src/discover.js';
 import { checkClaude } from '../src/claude.js';
 import { checkCodex } from '../src/codex.js';
 import { render } from '../src/render.js';
-import { laneOf, laneRank, weeklyLeft } from '../src/lanes.js';
 import { state } from '../src/util.js';
 
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 const HELP = `llmon ${VERSION} — one-shot dashboard for local Claude Code & Codex accounts
 
 Scans ~/.claude(-*) and ~/.codex(-*) config homes, checks all accounts in
-parallel: usage / rate limits, plan, auth expiry & refresh dates. Expired
-Claude access tokens are auto-refreshed (standard OAuth refresh grant) and
-saved back where Claude Code keeps them.
+parallel: usage / rate limits. Auth warnings appear within 3 days
+of expiry or when authentication needs attention. Expired Claude access
+tokens are auto-refreshed (standard OAuth refresh grant) and saved back
+where Claude Code keeps them.
 
-Claude accounts are shown in three lanes by their 7-day weekly window:
-  ◔ RESET SOON   weekly resets within 1d
-  ◑ MID-WEEK     weekly resets in 1–5d
-  ● FRESH        weekly resets in 5d+ (week started <2d ago), or idle
+Layout adapts to terminal width: 1 column below 96 characters, 2 at 96–144,
+and 3 at 145 or more. Use -1 to force a single column.
 
 Usage: llmon [filters...] [options]
 
@@ -27,8 +25,8 @@ Filters:  provider name (claude, codex) or account label substring
 Options:
   -c, --claude         Claude accounts only (same as the "claude" filter)
       --codex          Codex accounts only
-  -1, --one-column     Single-column layout
-      --json           Machine-readable JSON output (each account carries its "lane")
+  -1, --one-column     Force single-column layout (default: auto 1–3 columns)
+      --json           Machine-readable JSON output
       --no-color       Disable colors
       --no-refresh     Never refresh tokens (strictly read-only)
   -t, --timeout <sec>  Network timeout per request (default 10)
@@ -121,19 +119,12 @@ async function main() {
   const elapsedMs = Date.now() - t0;
   stop();
 
-  // Lane = phase of the Claude weekly window (soon / mid / fresh; null for codex or no data).
-  const now = Date.now();
-  for (const r of results) r.lane = laneOf(r, now);
-
-  // claude before codex; within claude by lane, then soonest reset first (idle last); then label.
-  const cmp = (x, y) => (x === y ? 0 : x < y ? -1 : 1);
+  // Claude before Codex; default account first, then label.
   const order = { claude: 0, codex: 1 };
   const lbl = (a) => (a.label === 'default' ? '' : a.label);
   results.sort(
     (a, b) =>
-      cmp(order[a.provider], order[b.provider]) ||
-      cmp(laneRank(a.lane), laneRank(b.lane)) ||
-      cmp(weeklyLeft(a, now) ?? Infinity, weeklyLeft(b, now) ?? Infinity) ||
+      order[a.provider] - order[b.provider] ||
       lbl(a).localeCompare(lbl(b))
   );
 

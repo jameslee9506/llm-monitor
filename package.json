@@ -1,7 +1,7 @@
 {
   "name": "llm-monitor",
-  "version": "0.4.0",
-  "description": "One-shot terminal dashboard for local Claude Code & Codex accounts — usage, rate limits, auth expiry",
+  "version": "0.5.0",
+  "description": "Responsive terminal dashboard for local Claude Code & Codex accounts — usage, rate limits, auth warnings",
   "type": "module",
   "bin": {
     "llmon": "./bin/llmon.js"
