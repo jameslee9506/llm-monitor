@@ -1,6 +1,6 @@
 {
   "name": "llm-monitor",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Responsive terminal dashboard for local Claude Code & Codex accounts — usage, rate limits, auth warnings",
   "type": "module",
   "bin": {

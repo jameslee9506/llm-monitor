@@ -5,11 +5,11 @@ import { checkCodex } from '../src/codex.js';
 import { render } from '../src/render.js';
 import { state } from '../src/util.js';
 
-const VERSION = '0.5.0';
+const VERSION = '0.5.1';
 const HELP = `llmon ${VERSION} — one-shot dashboard for local Claude Code & Codex accounts
 
 Scans ~/.claude(-*) and ~/.codex(-*) config homes, checks all accounts in
-parallel: usage / rate limits. Auth warnings appear within 3 days
+parallel: usage / rate limits. Auth warnings appear within 24 hours
 of expiry or when authentication needs attention. Expired Claude access
 tokens are auto-refreshed (standard OAuth refresh grant) and saved back
 where Claude Code keeps them.

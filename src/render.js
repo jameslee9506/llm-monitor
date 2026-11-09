@@ -7,7 +7,7 @@ const PROV = {
   claude: { name: 'CLAUDE', color: fg(208) },
   codex: { name: 'CODEX', color: fg(42) },
 };
-const AUTH_WARNING_MS = 3 * 24 * 60 * 60 * 1000;
+const AUTH_WARNING_MS = 24 * 60 * 60 * 1000;
 const CARD_GAP = 2;
 const MIN_GRID_CARD_W = 47;
 
