@@ -193,7 +193,13 @@ export function render(results, { termW, oneCol, skipped, elapsedMs }) {
   out.push(bold('llmon') + dim(' · ') + count + dim(` · ${fmtDT(Date.now())} · ${(elapsedMs / 1000).toFixed(1)}s`));
   out.push('');
 
-  out.push(...grid(results.map((a) => cardLines(a, cardW)), cols, cardW));
+  out.push(...grid(claude.map((a) => cardLines(a, cardW)), cols, cardW));
+  if (claude.length && codex.length) {
+    const sectionCols = Math.min(cols, Math.max(claude.length, codex.length));
+    const sectionW = sectionCols * cardW + (sectionCols - 1) * CARD_GAP;
+    out.push('', dim('─'.repeat(sectionW)), '');
+  }
+  out.push(...grid(codex.map((a) => cardLines(a, cardW)), cols, cardW));
   out.push('');
 
   const al = alerts(results);

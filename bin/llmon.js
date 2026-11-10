@@ -5,7 +5,7 @@ import { checkCodex } from '../src/codex.js';
 import { render } from '../src/render.js';
 import { state } from '../src/util.js';
 
-const VERSION = '0.5.1';
+const VERSION = '0.5.2';
 const HELP = `llmon ${VERSION} — one-shot dashboard for local Claude Code & Codex accounts
 
 Scans ~/.claude(-*) and ~/.codex(-*) config homes, checks all accounts in
